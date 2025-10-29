@@ -1,99 +1,77 @@
 import pygame
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, dados_personagem):
+    def __init__(self, x, y, dados):
         super().__init__()
+        self.frames = dados.get("frames", [])
+        self.img_unica = dados.get("img", None)
+        self.image = self.img_unica if self.img_unica else (self.frames[0] if self.frames else pygame.Surface((40,50)))
+        self.rect = self.image.get_rect(topleft=(x,y))
 
-        # -------------------------------
-        # Carregar imagens separadas
-        # Cada imagem representa uma ação do personagem
-        # -------------------------------
-        self.parado = None   # imagem quando parado
-        self.andando = []    # imagens quando andando
-        self.correndo = []   # imagens quando correndo (opcional)
-        self.index = 0       # índice de animação
-        self.counter = 0     # contador para controlar velocidade da animação
-        self.vel_y = 0       # velocidade vertical (gravidade)
-        self.jump = False    # flag para pular
-        self.speed = 5       # velocidade horizontal
+        # Movimento
+        self.vel_y = 0
+        self.jump = False
+        self.speed = 5
+        self.direita = True
+        self.frame_index = 0
+        self.anim_counter = 0
 
-        # Se for imagem única (ex: Zumbi parado)
-        if dados_personagem.get("img"):
-            self.parado = pygame.transform.scale(dados_personagem["img"], (50, 70))
-            self.andando = [self.parado]  # usa a mesma imagem para andar
+        # Ataque corpo a corpo
+        self.attack_cooldown = 0
+        self.attack_range = 40
+        self.atacando = False
 
-        # Se for Dandara com várias imagens
-        elif dados_personagem.get("frames"):
-            frames = dados_personagem["frames"]
-            # Supondo que você tenha 3 imagens:
-            # frames[0] = parada
-            # frames[1] = andando
-            # frames[2] = correndo
-            if len(frames) >= 3:
-                self.parado = pygame.transform.scale(frames[0], (50, 70))
-                self.andando = [pygame.transform.scale(frames[1], (50, 70))]
-                self.correndo = [pygame.transform.scale(frames[2], (50, 70))]
-            else:
-                # se tiver menos imagens, usar a primeira para tudo
-                self.parado = pygame.transform.scale(frames[0], (50, 70))
-                self.andando = [self.parado]
-
-        # Se não tiver imagens, usar retângulo colorido
-        else:
-            cor = dados_personagem.get("cor", (255, 0, 0))
-            surf = pygame.Surface((40, 50))
-            surf.fill(cor)
-            self.parado = surf
-            self.andando = [surf]
-
-        # Imagem inicial
-        self.image = self.parado
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-
-    # -------------------------------
-    # Atualização do Player
-    # -------------------------------
     def update(self, plataformas):
         keys = pygame.key.get_pressed()
-        andando = False
+        moving = False
 
-        # Movimentação horizontal
+        # Movimento horizontal
         if keys[pygame.K_LEFT]:
             self.rect.x -= self.speed
-            andando = True
+            moving = True
+            self.direita = False
         if keys[pygame.K_RIGHT]:
             self.rect.x += self.speed
-            andando = True
+            moving = True
+            self.direita = True
 
         # Pular
-        if keys[pygame.K_SPACE]:
-            if not self.jump:
-                self.vel_y = -15
-                self.jump = True
+        if keys[pygame.K_SPACE] and not self.jump:
+            self.vel_y = -15
+            self.jump = True
+
+        # Ataque corpo a corpo
+        self.atacando = False
+        if keys[pygame.K_x] and self.attack_cooldown == 0:
+            self.atacando = True
+            self.attack_cooldown = 20
+
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= 1
 
         # Gravidade
         self.vel_y += 0.8
         self.rect.y += self.vel_y
 
         # Colisão com plataformas
-        col_plataformas = pygame.sprite.spritecollide(self, plataformas, False)
-        for plat in col_plataformas:
-            if self.vel_y > 0:  # caindo
+        col_plat = pygame.sprite.spritecollide(self, plataformas, False)
+        for plat in col_plat:
+            if self.vel_y > 0:
                 self.rect.bottom = plat.rect.top
                 self.vel_y = 0
                 self.jump = False
 
-        # -------------------------------
-        # Troca de imagens (animação)
-        # -------------------------------
-        if andando and len(self.andando) > 0:
-            # Quando andando, alterna os frames
-            self.counter += 1
-            if self.counter >= 10:  # a cada 10 ticks troca o frame
-                self.counter = 0
-                self.index = (self.index + 1) % len(self.andando)
-                self.image = self.andando[self.index]
-        else:
-            # Se não está andando, mostra imagem parada
-            self.image = self.parado
+        # Animação
+        if self.frames:
+            self.anim_counter += 1
+            if self.atacando and len(self.frames) > 2:
+                self.frame_index = 2
+            elif moving:
+                self.frame_index = 1 if len(self.frames) > 1 else 0
+            else:
+                self.frame_index = 0
+            frame = self.frames[self.frame_index]
+            if self.direita:
+                self.image = frame
+            else:
+                self.image = pygame.transform.flip(frame, True, False)
