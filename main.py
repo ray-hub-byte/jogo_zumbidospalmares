@@ -1,4 +1,5 @@
 import pygame
+import math
 from player import Player
 from plataforma import Plataforma
 from inimigo import Inimigo
@@ -9,87 +10,123 @@ TELA = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Jogo dos Palmares")
 clock = pygame.time.Clock()
 FONT = pygame.font.SysFont(None, 36)
+FONT_MSG = pygame.font.SysFont(None, 28)
 
 # -----------------------------
 # Função para carregar imagens
 # -----------------------------
-def carregar_imagem(nome_arquivo):
-    """Tenta carregar a imagem e retorna None se não existir"""
+def carregar_imagem(nome_arquivo, width=None, height=None):
     try:
-        return pygame.image.load(nome_arquivo).convert_alpha()
-    except FileNotFoundError:
-        print(f"Arquivo não encontrado: {nome_arquivo}")
+        img = pygame.image.load(nome_arquivo).convert_alpha()
+        if width and height:
+            img = pygame.transform.scale(img, (width, height))
+        return img
+    except:
+        print(f"Não encontrado: {nome_arquivo}")
         return None
 
 # -----------------------------
 # Carregar imagens dos personagens
 # -----------------------------
-# Zumbi (imagem única)
-zumbi_img = carregar_imagem("zumbiDP.png")
+zumbi_parado = carregar_imagem("zumbiparado.png", 80, 100)
+zumbi_correndo = carregar_imagem("zumbicorrendo.png", 80, 100)
+frames_zumbi = [f for f in [zumbi_parado, zumbi_correndo] if f]
 
-# Dandara (3 imagens: parada, andando, correndo)
-frames_dandara = []
-for i in range(4, 7):  # image(4).png = parada, image(5).png = andando, image(6).png = correndo
-    img = carregar_imagem(f"dandara/image({i}).png")
-    if img:
-        frames_dandara.append(img)
+dandara_parada = carregar_imagem("image (4).png", 80, 100)
+dandara_correndo = carregar_imagem("image (5).png", 80, 100)
+frames_dandara = [f for f in [dandara_parada, dandara_correndo] if f]
 
-# -----------------------------
-# Definir personagens
-# -----------------------------
 personagens = {
-    "Zumbi dos Palmares": {"img": zumbi_img},
-    "Dandara dos Palmares": {"frames": frames_dandara}
+    "Zumbi dos\nPalmares": {"frames": frames_zumbi},
+    "Dandara dos\nPalmares": {"frames": frames_dandara}
 }
 
-personagem_escolhido = None
-
 # -----------------------------
-# Menu de seleção de personagem
+# Menu inicial estilo Mario
 # -----------------------------
-def menu_personagem():
-    global personagem_escolhido
+def menu_inicial(TELA, FONT, personagens):
+    options = ["Jogar", "Créditos", "Sair"]
     selected = 0
+    anim_counter = 0
+    running = True
+
+    zumbi_frames = personagens["Zumbi dos\nPalmares"].get("frames", [])
+    dandara_frames = personagens["Dandara dos\nPalmares"].get("frames", [])
+
+    while running:
+        clock.tick(60)
+        TELA.fill((139, 69, 19))  # fundo marrom
+
+        # Chão estilo Mario
+        for i in range(0, 800, 50):
+            pygame.draw.rect(TELA, (205, 133, 63), (i, 550, 48, 50))
+            pygame.draw.rect(TELA, (139, 69, 19), (i + 5, 555, 38, 40))
+
+        # Letreiro semi-transparente
+        s = pygame.Surface((600, 50), pygame.SRCALPHA)
+        s.fill((0, 0, 0, 120))
+        TELA.blit(s, (100, 20))
+        titulo = FONT.render("Jogo dos Palmares", True, (255, 223, 186))
+        TELA.blit(titulo, titulo.get_rect(center=(400, 45)))
+
+        # Personagens animados
+        if zumbi_frames:
+            idx = (anim_counter // 10) % len(zumbi_frames)
+            TELA.blit(zumbi_frames[idx], (200, 400 + 5 * math.sin(anim_counter * 0.1)))
+        if dandara_frames:
+            idx = (anim_counter // 10) % len(dandara_frames)
+            TELA.blit(dandara_frames[idx], (500, 400 + 5 * math.sin(anim_counter * 0.1)))
+
+        # Menu horizontal
+        for i, opt in enumerate(options):
+            cor = (255, 255, 0) if i == selected else (255, 255, 255)
+            txt = FONT.render(opt, True, cor)
+            TELA.blit(txt, txt.get_rect(center=(400, 200 + i * 80)))
+
+        pygame.display.update()
+        anim_counter += 1
+
+        # Eventos
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return None
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    selected = (selected - 1) % len(options)
+                elif event.key == pygame.K_DOWN:
+                    selected = (selected + 1) % len(options)
+                elif event.key == pygame.K_RETURN:
+                    return options[selected]
+
+# -----------------------------
+# Menu de escolha de personagem
+# -----------------------------
+def menu_personagem(TELA, FONT, personagens):
     opcoes = list(personagens.keys())
-    selecionando = True
+    selected = 0
+    running = True
 
-    while selecionando:
-        TELA.fill((30, 30, 30))
+    while running:
+        TELA.fill((139, 69, 19))
+        titulo = FONT.render("Selecione seu personagem", True, (255, 223, 186))
+        TELA.blit(titulo, (200, 50))
 
-        # Título
-        titulo = FONT.render("Selecione seu personagem", True, (255, 255, 255))
-        TELA.blit(titulo, (220, 50))
-
-        # Mostrar personagens
         for i, nome in enumerate(opcoes):
             dados = personagens[nome]
-            rect = pygame.Rect(150 + i*300, 200, 200, 250)
-
-            # Mostrar imagem parada ou primeiro frame da animação
-            if dados.get("img"):
-                TELA.blit(pygame.transform.scale(dados["img"], (150, 200)), (rect.x + 25, rect.y))
-            elif dados.get("frames") and len(dados["frames"]) > 0:
-                TELA.blit(pygame.transform.scale(dados["frames"][0], (150, 200)), (rect.x + 25, rect.y))
+            rect = pygame.Rect(150 + i * 250, 200, 150, 200)
+            if dados.get("frames"):
+                TELA.blit(dados["frames"][0], (rect.x, rect.y))
             else:
-                pygame.draw.rect(TELA, (255, 0, 0), rect)
-                txt = pygame.font.SysFont(None, 28).render("Sem imagem", True, (255, 255, 255))
-                TELA.blit(txt, (rect.x + 35, rect.y + 100))
+                pygame.draw.rect(TELA, (0, 0, 0), rect)
 
-            # Nome do personagem
             nome_texto = FONT.render(nome, True, (255, 255, 255))
             TELA.blit(nome_texto, (rect.x, rect.y + 210))
 
-            # Destaque do selecionado
             if i == selected:
-                pygame.draw.rect(TELA, (255, 255, 0), rect, 5)
-
-        # Instruções
-        instr = pygame.font.SysFont(None, 24).render("Use ← → e ENTER para escolher", True, (255, 255, 255))
-        TELA.blit(instr, (180, 520))
+                pygame.draw.rect(TELA, (255, 255, 0), rect, 4)
 
         pygame.display.update()
 
-        # Eventos do teclado
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return None
@@ -99,116 +136,146 @@ def menu_personagem():
                 elif event.key == pygame.K_RIGHT:
                     selected = (selected + 1) % len(opcoes)
                 elif event.key == pygame.K_RETURN:
-                    personagem_escolhido = opcoes[selected]
-                    return personagem_escolhido
-                elif event.key == pygame.K_ESCAPE:
-                    return None
+                    return opcoes[selected]
 
 # -----------------------------
-# Função principal do jogo
+# Fases do jogo
 # -----------------------------
-def jogar_palmares():
-    global personagem_escolhido
-    if not personagem_escolhido:
-        print("Escolha primeiro um personagem!")
-        return
+fases = [
+    {
+        "plataformas": [(0, 580, 800, 20), (200, 450, 200, 20), (500, 350, 200, 20)],
+        "inimigos": [{"x": 300, "y": 420, "img": "inimigo atirando.png", "caminho": [300, 500]}],
+        "tesouros": [
+            {"x": 150, "y": 300, "frase": "Os quilombos eram comunidades formadas por escravizados que fugiam."},
+            {"x": 500, "y": 300, "frase": "A capoeira era uma forma de resistência cultural."}
+        ]
+    },
+    {
+        "plataformas": [(0, 580, 800, 20), (150, 450, 200, 20), (450, 350, 200, 20)],
+        "inimigos": [{"x": 400, "y": 420, "img": "inimigo.png", "caminho": [400, 600]}],
+        "tesouros": [
+            {"x": 200, "y": 300, "frase": "Muitos escravizados mantinham suas tradições e religiões africanas."},
+            {"x": 500, "y": 250, "frase": "O trabalho nos engenhos era extremamente exaustivo e perigoso."}
+        ]
+    }
+]
 
-    # Grupos de sprites
-    todas_sprites = pygame.sprite.Group()
-    plataformas = pygame.sprite.Group()
-    inimigos = pygame.sprite.Group()
-    tesouros = pygame.sprite.Group()
+# -----------------------------
+# Jogar fase com mensagens pausáveis e ataque corpo a corpo
+# -----------------------------
+def jogar(personagem_escolhido):
+    for fase in fases:
+        todas_sprites = pygame.sprite.Group()
+        plataformas = pygame.sprite.Group()
+        inimigos = pygame.sprite.Group()
+        tesouros = pygame.sprite.Group()
 
-    # Criar jogador com imagens corretas
-    dados = personagens[personagem_escolhido]
-    player = Player(100, 500, dados)
-    todas_sprites.add(player)
+        dados = personagens[personagem_escolhido]
+        player = Player(100, 500, dados)
+        todas_sprites.add(player)
 
-    # Criar plataformas
-    plat1 = Plataforma(0, 580, 800, 20)
-    plat2 = Plataforma(200, 450, 200, 20)
-    plat3 = Plataforma(500, 350, 200, 20)
-    plataformas.add(plat1, plat2, plat3)
-    todas_sprites.add(plataformas)
+        # Plataformas
+        for p in fase["plataformas"]:
+            plat = Plataforma(*p)
+            plataformas.add(plat)
+            todas_sprites.add(plat)
 
-    # Criar inimigos
-    inimigo1 = Inimigo(300, 420, 50, 30)
-    inimigos.add(inimigo1)
-    todas_sprites.add(inimigos)
+        # Tesouros
+        for t in fase["tesouros"]:
+            tes = Tesouro(t["x"], t["y"], t["frase"])
+            tesouros.add(tes)
+            todas_sprites.add(tes)
 
-    # Criar tesouros (curiosidades históricas)
-    curiosidades = [
-        "Os quilombos eram comunidades formadas por escravizados que fugiam.",
-        "A capoeira era uma forma de resistência cultural.",
-        "Muitos escravizados mantinham suas tradições e religiões africanas.",
-        "O trabalho nos engenhos era extremamente exaustivo e perigoso.",
-        "A música e a dança eram formas de preservar identidade e cultura."
-    ]
-    for i, frase in enumerate(curiosidades):
-        x = 150 + i*120
-        y = 300 - i*30
-        tesouro = Tesouro(x, y, frase)
-        tesouros.add(tesouro)
-        todas_sprites.add(tesouro)
+        # Inimigos
+        for i in fase["inimigos"]:
+            img = carregar_imagem(i["img"], 50, 50)
+            inim = Inimigo(i["x"], i["y"], 50, 50, img, caminho=i["caminho"])
+            inimigos.add(inim)
+            todas_sprites.add(inim)
 
-    mensagem = ""
-    running = True
-    while running:
-        clock.tick(60)
+        mensagem = ""
+        pausa = False
+        running = True
+        while running:
+            clock.tick(60)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+                elif event.type == pygame.KEYDOWN:
+                    if pausa and event.key == pygame.K_SPACE:
+                        pausa = False
+                        mensagem = ""
 
-        # Eventos
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if not pausa:
+                # Atualizar player e inimigos
+                todas_sprites.update(plataformas)
+                for inim in inimigos:
+                    inim.update(player)
+
+                # Colisão com inimigos
+                for inim in inimigos:
+                    # Pisando em cima mata o inimigo
+                    if player.vel_y > 0 and player.rect.bottom <= inim.rect.top + 15 and \
+                       player.rect.right > inim.rect.left and player.rect.left < inim.rect.right:
+                        inim.kill()
+                        player.vel_y = -10  # impulso
+                    # Ataque corpo a corpo (tecla X)
+                    elif player.atacando and abs(player.rect.centerx - inim.rect.centerx) < player.attack_range and \
+                         abs(player.rect.centery - inim.rect.centery) < player.attack_range:
+                        inim.kill()
+
+                # Checar projéteis
+                for inim in inimigos:
+                    if pygame.sprite.spritecollideany(player, inim.projeteis):
+                        print("Você foi atingido!")
+                        return
+
+                # Coletar tesouros e pausar
+                coletados = pygame.sprite.spritecollide(player, tesouros, True)
+                if coletados:
+                    mensagem = coletados[0].frase
+                    pausa = True
+
+            # Desenhar
+            TELA.fill((135, 206, 235))
+            for i in range(0, 800, 50):
+                pygame.draw.rect(TELA, (205, 133, 63), (i, 550, 48, 50))
+                pygame.draw.rect(TELA, (139, 69, 19), (i + 5, 555, 38, 40))
+
+            todas_sprites.draw(TELA)
+            for inim in inimigos:
+                inim.projeteis.draw(TELA)
+
+            # Mensagem do tesouro
+            if mensagem:
+                s = pygame.Surface((780, 100), pygame.SRCALPHA)
+                s.fill((0,0,0,180))
+                TELA.blit(s, (10, 200))
+                txt = FONT_MSG.render(mensagem, True, (255, 255, 255))
+                TELA.blit(txt, (20, 230))
+
+            pygame.display.update()
+
+            # Passar de fase
+            if player.rect.right >= 780 and not pausa:
                 running = False
 
-        # Atualizar todos os sprites
-        todas_sprites.update(plataformas)
-
-        # Colisão com inimigos
-        if pygame.sprite.spritecollideany(player, inimigos):
-            print("Você perdeu!")
-            running = False
-
-        # Coleta de tesouros
-        coletados = pygame.sprite.spritecollide(player, tesouros, True)
-        if coletados:
-            mensagem = coletados[0].frase
-            print("Tesouro coletado:", mensagem)
-
-        # Desenhar tudo
-        TELA.fill((135, 206, 235))  # fundo azul
-        todas_sprites.draw(TELA)
-
-        # Mostrar mensagem do tesouro
-        if mensagem:
-            FONT_MSG = pygame.font.SysFont(None, 28)
-            txt = FONT_MSG.render(mensagem, True, (255, 255, 255))
-            TELA.blit(txt, (10, 550))
-
-        pygame.display.update()
+    print("Parabéns! Você completou todas as fases!")
 
 # -----------------------------
-# Menu principal
+# Loop principal
 # -----------------------------
 running = True
 while running:
-    TELA.fill((50, 50, 50))
-    options = ["1 - Escolher Personagem", "2 - Jogar", "0 - Sair"]
-    for i, opt in enumerate(options):
-        txt = FONT.render(opt, True, (255, 255, 255))
-        TELA.blit(txt, (200, 150 + i*60))
-    pygame.display.update()
-
-    # Eventos do menu
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_1:
-                menu_personagem()
-            elif event.key == pygame.K_2:
-                jogar_palmares()
-            elif event.key == pygame.K_0:
-                running = False
+    escolha = menu_inicial(TELA, FONT, personagens)
+    if escolha == "Jogar":
+        personagem = menu_personagem(TELA, FONT, personagens)
+        if personagem:
+            jogar(personagem)
+    elif escolha == "Créditos":
+        print("Créditos do jogo...")
+        pygame.time.wait(2000)
+    else:
+        running = False
 
 pygame.quit()
