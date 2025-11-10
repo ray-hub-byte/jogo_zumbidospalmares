@@ -24,4 +24,4 @@ def efeito_botao():
         som.set_volume(2.0)  # volume baixo para não ser muito forte
         som.play()
     except Exception as e:
-        print(f"[ERRO] Não foi possível tocar o efeito: {e}")
+        print(f"[ERRO] Não foi possível tocar o efeito: {e}") 
