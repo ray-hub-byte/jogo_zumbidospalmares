@@ -1,0 +1,38 @@
+Para executar este jogo no VSCode é necessário:
+
+1. Instalar o Python 3.10 ou superior e configurar o ambiente virtual.
+
+2. Instalar as bibliotecas externas usadas no código:
+
+
+
+pip install pygame pygame_gui
+
+
+
+
+3. Ter os arquivos do projeto na mesma pasta:
+
+Módulos Python: player.py, plataforma.py, inimigo.py, tesouro.py, sons.py, finalizacao.py
+
+Imagens: image (4).png, image (5).png, zumbiparado.png, zumbi correndo.png, inimigo atirando.png, chao.png, bloco.png, tesouro.png, inicio.png, deserto.png, cenarionavio.png, plantacao.png
+
+Sons: arquivos .mp3 ou .wav utilizados pelo jogo.
+
+
+
+4. Extensões recomendadas no VSCode:
+
+
+Python (Microsoft)
+
+
+Pylance (Microsoft)
+
+
+Code Runner (opcional)
+
+
+5. Após instalar e configurar, execute o jogo pelo terminal:
+
+python nome_do_arquivo.py
