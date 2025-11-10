@@ -62,4 +62,4 @@ class Inimigo(pygame.sprite.Sprite):
     def atirar(self, player):
         proj = Projetil(self.rect.centerx, self.rect.centery,
                         player.rect.centerx, player.rect.centery)
-        self.projeteis.add(proj)
+        self.projeteis.add(proj) 
