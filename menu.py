@@ -55,3 +55,4 @@ def menu_personagem(TELA, FONT, personagens):
                     return personagem_escolhido
                 elif event.key == pygame.K_ESCAPE:
                     return None
+ 
