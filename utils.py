@@ -23,4 +23,3 @@ def desenhar_fundo_mario(TELA):
     for x in range(100,800,150):
         pygame.draw.rect(TELA,(255,215,0),(x,450,50,50))
         pygame.draw.rect(TELA,(255,215,0),(x+60,350,50,50))
-
