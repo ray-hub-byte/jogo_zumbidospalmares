@@ -146,4 +146,4 @@ class Player(pygame.sprite.Sprite):
                 # Colisão subindo (player vinha de baixo)
                 elif prev_rect.top >= plat.rect.bottom and self.vel_y < 0:
                     self.rect.top = plat.rect.bottom
-                    self.vel_y = 0
+                    self.vel_y = 0 
