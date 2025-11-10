@@ -9,3 +9,4 @@ class Plataforma(pygame.sprite.Sprite):
             self.image = pygame.Surface((largura, altura))
             self.image.fill((160,82,45))
         self.rect = self.image.get_rect(topleft=(x, y))
+ 
