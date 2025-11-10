@@ -8,10 +8,18 @@ from tesouro import Tesouro
 import math
 import random
 from sons import tocar_musica_fundo, efeito_botao, parar_musica
+import finalizacao
+
 
 pygame.init()
-WIDTH, HEIGHT = 800, 600
-TELA = pygame.display.set_mode((WIDTH, HEIGHT))
+# Pegando a resolução do monitor
+info = pygame.display.Info()
+WIDTH, HEIGHT = info.current_w, info.current_h
+
+# Inicializando em tela cheia
+TELA = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+fullscreen = True  # flag para controle
+
 pygame.display.set_caption("Jogo dos Palmares")
 clock = pygame.time.Clock()
 FONT_MSG = pygame.font.SysFont("arial", 26)  # Fonte ajustada para tesouros
@@ -49,7 +57,7 @@ dandara_run = carregar_imagem("image (5).png", 50, 80)
 frames_dandara = [dandara_idle, dandara_run]
 
 zumbi_idle = carregar_imagem("zumbiparado.png", 50, 80)
-zumbi_run = carregar_imagem("zumbicorrendo.png", 50, 80)
+zumbi_run = carregar_imagem("zumbi correndo.png", 50, 80)
 frames_zumbi = [zumbi_idle, zumbi_run]
 
 inimigo_img = carregar_imagem("inimigo atirando.png", 50, 80)
@@ -94,6 +102,15 @@ def menu_inicial():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return None
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                global fullscreen, WIDTH, HEIGHT, TELA
+                if fullscreen:
+                    WIDTH, HEIGHT = 800, 600  # tamanho da janela normal
+                    TELA = pygame.display.set_mode((WIDTH, HEIGHT))
+                    fullscreen = False
+                else:
+                    running = False  # fecha o loop da fase ou sai do jogo
+
             manager.process_events(event)
 
         manager.update(time_delta)
@@ -112,6 +129,8 @@ def menu_inicial():
 # Tela de seleção de personagem
 # -----------------------------
 def selecionar_personagem():
+    global WIDTH, HEIGHT, TELA, fullscreen  # ⬅️ declare no início da função
+
     opcoes = {"Dandara": frames_dandara, "Zumbi": frames_zumbi}
     nomes = list(opcoes.keys())
     selected = 0
@@ -199,14 +218,28 @@ def selecionar_personagem():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return None
+
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
+                # ESC para sair da tela cheia ou voltar
+                if event.key == pygame.K_ESCAPE:
+                    if fullscreen:
+                        # Sai da tela cheia, volta para janela
+                        WIDTH, HEIGHT = 800, 600
+                        TELA = pygame.display.set_mode((WIDTH, HEIGHT))
+                        fullscreen = False
+                    else:
+                        # Se já não estiver fullscreen, volta para menu
+                        return None
+
+                # Teclas de navegação
+                elif event.key == pygame.K_LEFT:
                     selected = (selected - 1) % len(opcoes)
                 elif event.key == pygame.K_RIGHT:
                     selected = (selected + 1) % len(opcoes)
                 elif event.key == pygame.K_RETURN:
                     efeito_botao()
                     return nomes[selected]
+
 
 # -----------------------------
 # Legendas
@@ -280,10 +313,10 @@ def jogar():
          "tesouros":[{"x":430,"y":80,"frase":"Antes da escravidão, povos africanos viviam em comunidades livres, com suas culturas, línguas e tradições."}]},
         {"fundo_draw": desenhar_fundo_navio, "num_blocos": 6, 
          "inimigos":[{"x":150,"y":480,"img":inimigo_img,"caminho":[150,400]},{"x":550,"y":480,"img":inimigo_img,"caminho":[550,750]}], 
-         "tesouros":[{"x":720,"y":250,"frase":"Milhares foram capturados à força e arrancados de suas casas e famílias.\nPor navios negreiros que cruzaram o Atlântico, trazendo sofrimento, doenças e morte."}]},
+         "tesouros":[{"x":720,"y":250,"frase":"Milhares foram capturados à força e arrancados de suas casas e famílias. Sendo levados por navios negreiros que cruzaram o Atlântico, trazendo sofrimento, doenças e morte."}]},
         {"fundo_draw": desenhar_fundo_plantacao, "num_blocos": 6, 
          "inimigos":[{"x":150,"y":480,"img":inimigo_img,"caminho":[150,360]},{"x":500,"y":480,"img":inimigo_img,"caminho":[500,720]}], 
-         "tesouros":[{"x":720,"y":230,"frase":"A Lei Áurea de 1888 libertou legalmente os escravizados no Brasil.\nMas a liberdade sem terras ou trabalho ainda limitava suas oportunidades."}]}
+         "tesouros":[{"x":720,"y":230,"frase":"A Lei Áurea de 1888 libertou legalmente os escravizados no Brasil. Mas a liberdade sem terras ou trabalho ainda limitava suas oportunidades."}]}
     ]
 
     for fase_idx, fase in enumerate(fases):
@@ -339,6 +372,20 @@ def jogar():
                 if event.type == pygame.QUIT:
                     parar_musica()
                     return
+                
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        global fullscreen, WIDTH, HEIGHT, TELA
+                        if fullscreen:
+                            # Sai do fullscreen e volta para janela normal
+                            WIDTH, HEIGHT = 800, 600
+                            TELA = pygame.display.set_mode((WIDTH, HEIGHT))
+                            fullscreen = False
+                        else:
+                            # Se já estiver em janela normal, fecha o jogo
+                            running = False
+
+
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and pausa:
                     pausa = False
                     mensagem = ""
@@ -382,43 +429,82 @@ def jogar():
                 if hasattr(inim, "projeteis"):
                     inim.projeteis.draw(TELA)
 
-            # Mensagem do tesouro
-            # Mensagem do tesouro
-            # Mensagem do tesouro
             if pausa and mensagem:
-                MARGEM = 20  # margem interna do retângulo
-                LARGURA_RETANGULO = 780 - 2*MARGEM
-                ALTURA_RETANGULO = 150
-                s = pygame.Surface((780, ALTURA_RETANGULO), pygame.SRCALPHA)
-                s.fill((0,0,0,180))
-                TELA.blit(s,(10,200))
+                     
+                largura_caixa = 700
+                altura_caixa = 200
+                x_caixa = (WIDTH - largura_caixa) // 2
+                y_caixa = (HEIGHT - altura_caixa) // 2
+                caixa = pygame.Surface((largura_caixa, altura_caixa), pygame.SRCALPHA)
+                caixa.fill((0, 0, 0, 210))
 
-                # Quebra de linha automática respeitando as bordas do retângulo
+                fonte_tesouro = pygame.font.SysFont("georgia", 20, bold=False)
+
+                # Quebra automática de linha (sem considerar ponto final)
                 palavras = mensagem.split(" ")
-                linhas_mensagem = []
+                linhas = []
                 linha_atual = ""
 
                 for palavra in palavras:
-                    teste_linha = linha_atual + (" " if linha_atual else "") + palavra
-                    largura_linha, _ = FONT_MSG.size(teste_linha)
-                    if largura_linha > LARGURA_RETANGULO:
-                        linhas_mensagem.append(linha_atual)
+                    teste = linha_atual + (" " if linha_atual else "") + palavra
+                    # só quebra se a linha ultrapassar a largura permitida
+                    if fonte_tesouro.size(teste)[0] > largura_caixa - 80:
+                        linhas.append(linha_atual)
                         linha_atual = palavra
                     else:
-                        linha_atual = teste_linha
+                        linha_atual = teste
                 if linha_atual:
-                    linhas_mensagem.append(linha_atual)
+                    linhas.append(linha_atual)
 
-                # Renderiza cada linha dentro do retângulo, centralizada horizontalmente
-                altura_inicio = 210
-                for i, linha in enumerate(linhas_mensagem):
-                    txt = FONT_MSG.render(linha, True, (255,255,255))
-                    ret_txt = txt.get_rect(center=(WIDTH//2, altura_inicio + i*30))
-                    TELA.blit(txt, ret_txt)
+                # Divide em páginas se o texto for muito longo
+                linhas_por_pagina = 5
+                paginas = [linhas[i:i + linhas_por_pagina] for i in range(0, len(linhas), linhas_por_pagina)]
+                pagina_atual = 0
+                mostrando = True
 
-                # Texto de instrução
-                instr = FONT_MSG.render("Pressione ESPAÇO para continuar", True, (200,200,200))
-                TELA.blit(instr, instr.get_rect(center=(WIDTH//2, altura_inicio + len(linhas_mensagem)*30 + 20)))
+                while mostrando:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
+                            exit()
+                        elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                            pagina_atual += 1
+                            if pagina_atual >= len(paginas):
+                                mostrando = False
+                                pausa = False
+                                mensagem = None
+                                break
+
+                    fase["fundo_draw"](TELA)
+                    todas_sprites.draw(TELA)
+                    inimigos.draw(TELA)
+                    for inim in inimigos:
+                        if hasattr(inim, "projeteis"):
+                            inim.projeteis.draw(TELA)
+
+                    if pagina_atual < len(paginas):
+                        # desenha a caixa
+                        TELA.blit(caixa, (x_caixa, y_caixa))
+                        pagina = paginas[pagina_atual]
+                        espacamento_linha = 34
+                        inicio_y = y_caixa + (altura_caixa - len(pagina) * espacamento_linha) // 2
+
+                        for i, linha in enumerate(pagina):
+                            render = fonte_tesouro.render(linha, True, (255, 255, 255))
+                            rect = render.get_rect(center=(WIDTH // 2, inicio_y + i * espacamento_linha))
+                            TELA.blit(render, rect)
+
+                        # legenda do botão
+                        fonte_instrucao = pygame.font.SysFont("arial", 18)
+                        instrucao = fonte_instrucao.render("[ESPAÇO] para continuar", True, (200, 200, 200))
+                        rect_instr = instrucao.get_rect(center=(WIDTH // 2, y_caixa + altura_caixa - 20))
+                        TELA.blit(instrucao, rect_instr)
+
+                    pygame.display.update()
+                    clock.tick(60)
+
+
+
 
 
             # Reiniciar fase se morreu
@@ -441,6 +527,10 @@ def jogar():
             # Avança fase apenas se todos os tesouros forem coletados e jogador chegou ao final
             if len(tesouros) == 0 and player.rect.right >= 780 and not pausa:
                 running = False
+    # Quando todas as fases terminarem:
+    parar_musica()               # para a música do jogo
+    finalizacao.tela_final()     # chama sua tela final com a história e música de vitória
+    return
 
 
 # -----------------------------
@@ -450,15 +540,26 @@ def main():
     running = True
     while running:
         escolha = menu_inicial()
+
         if escolha == "Jogar":
+            # Remove botões do menu atual
             for element in manager.get_root_container().elements.copy():
                 element.kill()
+
+            # Executa o jogo
             jogar()
-        else:
+
+            # 🔄 Após o jogo terminar, recria os botões e volta ao menu
+            global botao_jogar, botao_sair
+            botao_jogar = pygame_gui.elements.UIButton(pygame.Rect((350, 250), (100, 50)), "Jogar", manager)
+            botao_sair = pygame_gui.elements.UIButton(pygame.Rect((350, 320), (100, 50)), "Sair", manager)
+
+        elif escolha == "Sair":
             running = False
 
     parar_musica()
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()
