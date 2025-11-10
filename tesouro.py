@@ -13,3 +13,4 @@ class Tesouro(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(topleft=(x, y))
         self.frase = frase
+ 
