@@ -6,7 +6,9 @@ Para executar este jogo no VSCode é necessário:
 
 
 
-pip install pygame pygame_gui
+pip install charset-normalizer colorama decorator fpdf imageio imageio-ffmpeg moviepy numpy pillow pip proglog pygame
+pygame-ce pygame_gui python-dotenv python-i18n reportlab tqdm
+
 
 
 
@@ -36,3 +38,8 @@ Code Runner (opcional)
 5. Após instalar e configurar, execute o jogo pelo terminal:
 
 python nome_do_arquivo.py
+
+
+caso dê erro ao executar o codigo (main.py) teste colocar (python3 main.py), isso vai depende da versão do python.
+
+bjs bjs
